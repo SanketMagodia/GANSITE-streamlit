@@ -64,7 +64,7 @@ def generate_gif(pattern1, red, green, blue, saturation, contrast):
     pattern2 = np.array(generate(red, green, blue, saturation, contrast))
 
     # Define the number of frames for each transition
-    transition_frames = 20  # Adjust as needed
+    transition_frames = 10  # Adjust as needed
 
     # Create frames for the animation by blending patterns over time
     frames = []
