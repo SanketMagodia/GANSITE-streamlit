@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image, ImageEnhance
 import io
 import imageio
+import os
 # Load ONNX model
 ort_session = onnxruntime.InferenceSession("generator.onnx")
 
@@ -87,6 +88,36 @@ def generate_gif(pattern1, red, green, blue, saturation, contrast):
     frames[0].save(gif_bytes, format='GIF', save_all=True, append_images=frames[1:], loop=0)
     return gif_bytes
 
+def generate_video(pattern1, red, green, blue, saturation, contrast, filename, transition_frames=20, fps=10):
+    # Create a list to store frames of the video
+    pattern1 = np.array(pattern1)
+    pattern2 = np.array(generate(red, green, blue, saturation, contrast))
+
+    # Define the number of frames for each transition
+    total_frames = transition_frames * 2
+
+    # Create frames for the animation by blending patterns over time
+    frames = []
+    for i in range(total_frames):
+        alpha = i / (total_frames - 1)  # Interpolation factor
+        if i < transition_frames:
+            # Transition from pattern 1 to pattern 2
+            blended_pattern = (1 - alpha) * pattern1 + alpha * pattern2
+        else:
+            # Transition from pattern 2 to pattern 1
+            blended_pattern = (1 - alpha) * pattern2 + alpha * pattern1
+        blended_pattern_uint8 = np.clip(blended_pattern, 0, 255).astype(np.uint8)
+        frames.append(blended_pattern_uint8)
+
+    # Write frames to video using OpenCV
+    height, width, _ = frames[0].shape
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(filename, fourcc, fps, (width, height))
+    for frame in frames:
+        out.write(frame)
+    out.release()
+
+    return filename
 
 def main():
     st.title("GAN WALLPAPER GENERATOR")
@@ -119,16 +150,18 @@ def main():
             )
 
         download_image(state.img)
-        def download_gif():
-            gif_bytes = generate_gif(state.img, abs(red-49), abs(green-49), abs(blue-49), saturation, contrast)
+        def download_video():
+            filename = 'generated.mp4'
+            generate_video(state.img, abs(red-49), abs(green-49), abs(blue-49), saturation, contrast, filename)
             st.download_button(
-                label="Download GIF",
-                data=gif_bytes.getvalue(),
-                file_name='generated.gif',
-                mime='image/gif'
+                label="Download Live Wallpaper",
+                data=open(filename, 'rb'),
+                file_name=filename,
+                mime='video/mp4'
             )
-        if st.button("Generate GIF"):
-            download_gif()
+            os.remove(filename)  # Delete the generated video file after download
+        if st.button("Generate Live Wallpaper"):
+            download_video()
 
 if __name__ == "__main__":
     main()
