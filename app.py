@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageEnhance
 import io
-
+import imageio
 # Load ONNX model
 ort_session = onnxruntime.InferenceSession("generator.onnx")
 
@@ -58,6 +58,35 @@ def generate(red=10, green=10, blue=10, saturation=2.0, contrast=2.0):
     high_contrast_image = enhancer.enhance(contrast)  # Increase the contrast
 
     return high_contrast_image
+def generate_gif(pattern1, red, green, blue, saturation, contrast):
+    # Create a list to store frames of the GIF
+    pattern1 = np.array(pattern1)
+    pattern2 = np.array(generate(red, green, blue, saturation, contrast))
+
+    # Define the number of frames for each transition
+    transition_frames = 20  # Adjust as needed
+
+    # Create frames for the animation by blending patterns over time
+    frames = []
+    for i in range(transition_frames):
+        # Transition from pattern 1 to pattern 2
+        alpha = i / (transition_frames - 1)  # Interpolation factor
+        blended_pattern = (1 - alpha) * pattern1 + alpha * pattern2
+        blended_pattern_uint8 = np.clip(blended_pattern, 0, 255).astype(np.uint8)
+        frames.append(Image.fromarray(blended_pattern_uint8))
+
+    for i in range(transition_frames):
+        # Transition from pattern 2 to pattern 1
+        alpha = i / (transition_frames - 1)  # Interpolation factor
+        blended_pattern = (1 - alpha) * pattern2 + alpha * pattern1
+        blended_pattern_uint8 = np.clip(blended_pattern, 0, 255).astype(np.uint8)
+        frames.append(Image.fromarray(blended_pattern_uint8))
+
+    # Save the frames as a GIF
+    gif_bytes = io.BytesIO()
+    frames[0].save(gif_bytes, format='GIF', save_all=True, append_images=frames[1:], loop=0)
+    return gif_bytes
+
 
 def main():
     st.title("GAN WALLPAPER GENERATOR")
@@ -72,26 +101,34 @@ def main():
     with col1:
         state.img = generate(abs(red-49), abs(green-49), abs(blue-49), saturation, contrast)
         st.image(state.img, caption=None, use_column_width=False, width=300)
-        # # Add buttons below the sliders
-        # col1.button("Download Image")
-        # col1.button("Generate New Image")
-    # cols1, cols2 = st.columns([0.7, 0.3], gap=0)
-    button_generate = st.button("Generate")
-    def download_image(img):
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format='JPEG')
-        img_bytes.seek(0)
-        st.download_button(
-            label="Download Image",
-            data=img_bytes,
-            file_name='image.jpg',
-            mime='image/jpeg'
-        )
+    co1, co2 = st.columns([2, 2], gap="small")
+    with co1:
+        button_generate = st.button("Generate")
+        if button_generate:
+            state.img = generate(abs(red-49), abs(green-49), abs(blue-49), saturation, contrast)
+    with co2:
+        def download_image(img):
+            img_bytes = io.BytesIO()
+            img.save(img_bytes, format='JPEG')
+            img_bytes.seek(0)
+            st.download_button(
+                label="Download Wallpaper",
+                data=img_bytes,
+                file_name='image.jpg',
+                mime='image/jpeg'
+            )
 
-    download_image(state.img)
-    if button_generate:
-        # Generate the image
-        state.img = generate(abs(red-49), abs(green-49), abs(blue-49), saturation, contrast)
+        download_image(state.img)
+        def download_gif():
+            gif_bytes = generate_gif(state.img, abs(red-49), abs(green-49), abs(blue-49), saturation, contrast)
+            st.download_button(
+                label="Download GIF",
+                data=gif_bytes.getvalue(),
+                file_name='generated.gif',
+                mime='image/gif'
+            )
+        if st.button("Generate GIF"):
+            download_gif()
 
 if __name__ == "__main__":
     main()
