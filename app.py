@@ -83,7 +83,7 @@ def generate_video(pattern1, red, green, blue, saturation, contrast, filename, t
 
     # Write frames to video using OpenCV
     height, width, _ = frames[0].shape
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    fourcc = cv2.VideoWriter_fourcc(*'avc1')
     out = cv2.VideoWriter(filename, fourcc, fps, (width, height))
     for frame in frames:
         out.write(frame)
