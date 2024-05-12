@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 from PIL import Image, ImageEnhance
 import io
-import imageio
 import os
 # Load ONNX model
 ort_session = onnxruntime.InferenceSession("generator.onnx")
@@ -59,34 +58,7 @@ def generate(red=10, green=10, blue=10, saturation=2.0, contrast=2.0):
     high_contrast_image = enhancer.enhance(contrast)  # Increase the contrast
 
     return high_contrast_image
-def generate_gif(pattern1, red, green, blue, saturation, contrast):
-    # Create a list to store frames of the GIF
-    pattern1 = np.array(pattern1)
-    pattern2 = np.array(generate(red, green, blue, saturation, contrast))
 
-    # Define the number of frames for each transition
-    transition_frames = 10  # Adjust as needed
-
-    # Create frames for the animation by blending patterns over time
-    frames = []
-    for i in range(transition_frames):
-        # Transition from pattern 1 to pattern 2
-        alpha = i / (transition_frames - 1)  # Interpolation factor
-        blended_pattern = (1 - alpha) * pattern1 + alpha * pattern2
-        blended_pattern_uint8 = np.clip(blended_pattern, 0, 255).astype(np.uint8)
-        frames.append(Image.fromarray(blended_pattern_uint8))
-
-    for i in range(transition_frames):
-        # Transition from pattern 2 to pattern 1
-        alpha = i / (transition_frames - 1)  # Interpolation factor
-        blended_pattern = (1 - alpha) * pattern2 + alpha * pattern1
-        blended_pattern_uint8 = np.clip(blended_pattern, 0, 255).astype(np.uint8)
-        frames.append(Image.fromarray(blended_pattern_uint8))
-
-    # Save the frames as a GIF
-    gif_bytes = io.BytesIO()
-    frames[0].save(gif_bytes, format='GIF', save_all=True, append_images=frames[1:], loop=0)
-    return gif_bytes
 
 def generate_video(pattern1, red, green, blue, saturation, contrast, filename, transition_frames=20, fps=10):
     # Create a list to store frames of the video

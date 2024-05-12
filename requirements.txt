@@ -5,5 +5,3 @@ onnx
 onnxruntime
 pillow
 streamlit
-imageio
-imageio[ffmpeg]
